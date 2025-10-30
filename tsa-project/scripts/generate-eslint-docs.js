@@ -158,7 +158,6 @@ async function main() {
     // initialize eslint with the project's config
     const eslint = new ESLint({
       cwd: PROJECT_ROOT,
-      useEslintrc: false,
       overrideConfigFile: path.join(PROJECT_ROOT, 'eslint.config.js'),
     });
 
