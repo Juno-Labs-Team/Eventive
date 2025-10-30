@@ -1,15 +1,9 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router";
-import Account from "../pages/account.tsx";
+import { Link } from "react-router";
 
 export default function Navbar() {
     return (
-        <>
-            <BrowserRouter>
-                <Routes>
-                    <Route path="account" element={<Account />}/>
-                    <Link to="/account"/>
-                </Routes>
-            </BrowserRouter>
-        </>
+        <nav>
+            <Link to="/account">Account</Link>
+        </nav>
     );
 }
