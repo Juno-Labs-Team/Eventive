@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import { SkeletonLoader } from '../components/SkeletonLoader';
 
 export default function Account() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, loading: authLoading } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     display_name: profile?.display_name || '',
     username: profile?.username || '',
@@ -15,7 +16,7 @@ export default function Account() {
   const handleSave = async () => {
     if (!user) return;
 
-    setLoading(true);
+    setSaving(true);
     try {
       const { error } = await supabase
         .from('profiles')
@@ -35,7 +36,7 @@ export default function Account() {
       console.error('Error updating profile:', error);
       alert(`Failed to update profile: ${error.message}`);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -47,6 +48,18 @@ export default function Account() {
     });
     setEditing(false);
   };
+
+  // Show skeleton loader while auth is loading
+  if (authLoading) {
+    return (
+      <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
+        <h1>Account</h1>
+        <div style={{ marginTop: '24px' }}>
+          <SkeletonLoader type="profile" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
@@ -185,30 +198,30 @@ export default function Account() {
             <>
               <button 
                 onClick={handleSave}
-                disabled={loading}
+                disabled={saving}
                 style={{ 
                   padding: '10px 20px',
                   borderRadius: '6px',
                   border: 'none',
                   background: '#48bb78',
                   color: 'white',
-                  cursor: loading ? 'not-allowed' : 'pointer',
+                  cursor: saving ? 'not-allowed' : 'pointer',
                   fontSize: '14px',
-                  opacity: loading ? 0.6 : 1
+                  opacity: saving ? 0.6 : 1
                 }}
               >
-                {loading ? 'Saving...' : 'Save Changes'}
+                {saving ? 'Saving...' : 'Save Changes'}
               </button>
               <button 
                 onClick={handleCancel}
-                disabled={loading}
+                disabled={saving}
                 style={{ 
                   padding: '10px 20px',
                   borderRadius: '6px',
                   border: '1px solid #ddd',
                   background: 'white',
                   color: '#333',
-                  cursor: loading ? 'not-allowed' : 'pointer',
+                  cursor: saving ? 'not-allowed' : 'pointer',
                   fontSize: '14px'
                 }}
               >
