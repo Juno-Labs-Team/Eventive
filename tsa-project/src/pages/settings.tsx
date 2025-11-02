@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import { SkeletonLoader } from '../components/SkeletonLoader';
 
 export default function Settings() {
-  const { profile, refreshProfile } = useAuth();
+  const { profile, refreshProfile, loading: authLoading } = useAuth();
   const [settings, setSettings] = useState(profile?.settings || {});
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const handleToggle = (key: string) => {
     setSettings((prev: any) => ({
@@ -17,7 +18,7 @@ export default function Settings() {
   const handleSave = async () => {
     if (!profile) return;
 
-    setLoading(true);
+    setSaving(true);
     try {
       const { error } = await supabase
         .from('profiles')
@@ -32,9 +33,21 @@ export default function Settings() {
       console.error('Error saving settings:', error);
       alert(`Failed to save settings: ${error.message}`);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  // Show skeleton loader while auth is loading
+  if (authLoading) {
+    return (
+      <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
+        <h1>Settings</h1>
+        <div style={{ marginTop: '24px' }}>
+          <SkeletonLoader type="card" count={2} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
@@ -102,21 +115,21 @@ export default function Settings() {
 
         <button 
           onClick={handleSave}
-          disabled={loading}
+          disabled={saving}
           style={{ 
             padding: '10px 24px',
             borderRadius: '6px',
             border: 'none',
             background: '#667eea',
             color: 'white',
-            cursor: loading ? 'not-allowed' : 'pointer',
+            cursor: saving ? 'not-allowed' : 'pointer',
             fontSize: '14px',
             fontWeight: '500',
-            opacity: loading ? 0.6 : 1,
+            opacity: saving ? 0.6 : 1,
             marginTop: '8px'
           }}
         >
-          {loading ? 'Saving...' : 'Save Settings'}
+          {saving ? 'Saving...' : 'Save Settings'}
         </button>
       </div>
 
