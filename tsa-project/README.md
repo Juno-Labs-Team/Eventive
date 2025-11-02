@@ -1,4 +1,109 @@
-# React + TypeScript + Vite
+# Eventive - TSA Project
+
+A modern event management platform built with React, TypeScript, and Supabase.
+
+## Features
+
+- 🔐 **OAuth Authentication** - Google and Discord login
+- 👤 **User Profiles** - Customizable profiles with avatars
+- ⚙️ **Settings Management** - User preferences and settings
+- 🔒 **Protected Routes** - Secure pages requiring authentication
+- 👑 **Role-Based Access** - Admin and user roles
+- 🎨 **Modern UI** - Clean, responsive design
+
+## Tech Stack
+
+- **Frontend**: React + TypeScript + Vite
+- **Authentication**: Supabase Auth (OAuth)
+- **Database**: PostgreSQL (via Supabase)
+- **Routing**: React Router
+- **Styling**: CSS (custom)
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- Supabase account and project
+- Google OAuth credentials (optional)
+- Discord OAuth credentials (optional)
+
+### Installation
+
+1. **Clone the repository**
+```bash
+git clone <repository-url>
+cd tsa-repository/tsa-project
+```
+
+2. **Install dependencies**
+```bash
+npm install
+```
+
+3. **Configure environment variables**
+
+Create a `.env` file in the root (`tsa-repository/`) with:
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+4. **Set up Supabase database**
+
+Run the SQL script in Supabase SQL Editor (see `docs/tsa-proj-/authentication.md` for full setup)
+
+5. **Configure OAuth providers**
+
+- Set up Google OAuth in Google Cloud Console
+- Set up Discord OAuth in Discord Developer Portal
+- Enable and configure providers in Supabase Dashboard
+
+6. **Start development server**
+```bash
+npm run dev
+```
+
+Visit `http://localhost:5173` to see the app!
+
+## Project Structure
+
+```
+tsa-project/
+├── src/
+│   ├── components/       # Reusable components
+│   ├── contexts/         # React contexts (Auth)
+│   ├── lib/             # Utilities (Supabase client)
+│   ├── pages/           # Page components
+│   ├── styles/          # CSS files
+│   └── types/           # TypeScript interfaces
+├── public/              # Static assets
+└── docs/                # Documentation
+```
+
+## Documentation
+
+- **[Authentication Guide](../docs/tsa-proj-/authentication.md)** - Complete auth system docs
+- **[Components](../docs/tsa-proj-/src/components.md)** - Component documentation
+- **[Pages](../docs/tsa-proj-/src/pages.md)** - Page documentation
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+
+## Authentication
+
+The app uses Supabase Auth with OAuth providers:
+
+- **Google** - Sign in with Google account
+- **Discord** - Sign in with Discord account
+
+User profiles are automatically created on first login with data from the OAuth provider.
+
+## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
