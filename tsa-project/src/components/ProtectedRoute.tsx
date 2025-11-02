@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { SkeletonLoader } from './SkeletonLoader';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -10,16 +11,20 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
   const { user, profile, loading } = useAuth();
 
-  // Show loading state while checking auth
+  // Show skeleton loader while checking auth
   if (loading) {
     return (
       <div style={{ 
         display: 'flex', 
         justifyContent: 'center', 
         alignItems: 'center', 
-        minHeight: '100vh' 
+        minHeight: '100vh',
+        flexDirection: 'column',
+        padding: '40px'
       }}>
-        <p>Loading...</p>
+        <div style={{ maxWidth: '800px', width: '100%' }}>
+          <SkeletonLoader type="card" count={1} />
+        </div>
       </div>
     );
   }
