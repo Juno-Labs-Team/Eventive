@@ -5,14 +5,80 @@ import type { AuthContextType, Profile } from '../types/auth';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// In-memory cache for profiles (faster than localStorage)
+const profileCache = new Map<string, { profile: Profile; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Check if cached profile is still valid
+  const getCachedProfile = (userId: string): Profile | null => {
+    // Check memory cache first (fastest)
+    const memoryCache = profileCache.get(userId);
+    if (memoryCache && Date.now() - memoryCache.timestamp < CACHE_DURATION) {
+      console.log('[Auth] Using memory cached profile');
+      return memoryCache.profile;
+    }
+
+    // Check localStorage as fallback
+    try {
+      const cached = localStorage.getItem(`profile_${userId}`);
+      if (cached) {
+        const { profile, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+          console.log('[Auth] Using localStorage cached profile');
+          // Also update memory cache
+          profileCache.set(userId, { profile, timestamp });
+          return profile;
+        }
+      }
+    } catch (error) {
+      console.error('[Auth] Error reading cache:', error);
+    }
+
+    return null;
+  };
+
+  // Save profile to cache
+  const cacheProfile = (userId: string, profile: Profile) => {
+    const cacheData = { profile, timestamp: Date.now() };
+    
+    // Save to memory cache
+    profileCache.set(userId, cacheData);
+    
+    // Save to localStorage
+    try {
+      localStorage.setItem(`profile_${userId}`, JSON.stringify(cacheData));
+    } catch (error) {
+      console.error('[Auth] Error saving to cache:', error);
+    }
+  };
+
+  // Clear profile cache
+  const clearProfileCache = (userId: string) => {
+    profileCache.delete(userId);
+    try {
+      localStorage.removeItem(`profile_${userId}`);
+    } catch (error) {
+      console.error('[Auth] Error clearing cache:', error);
+    }
+  };
+
   // Fetch user profile from database
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, force = false) => {
     console.log('[Auth] Fetching profile for user:', userId);
+    
+    // Check cache first (unless force refresh)
+    if (!force) {
+      const cached = getCachedProfile(userId);
+      if (cached) {
+        setProfile(cached);
+        return;
+      }
+    }
     
     // Add timeout to prevent hanging
     const timeoutPromise = new Promise((_, reject) => 
@@ -53,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } else {
               console.log('[Auth] Profile created successfully:', newProfile);
               setProfile(newProfile);
+              cacheProfile(userId, newProfile); // Cache the new profile
             }
           }
         } else {
@@ -63,16 +130,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('[Auth] Profile fetched successfully:', data);
       setProfile(data);
+      cacheProfile(userId, data); // Cache the profile
     } catch (error: any) {
       console.error('[Auth] Error fetching profile (caught):', error.message);
       setProfile(null);
     }
   };
 
-  // Refresh profile (useful after updates)
+  // Refresh profile (useful after updates - force fetch from DB)
   const refreshProfile = async () => {
     if (user?.id) {
-      await fetchProfile(user.id);
+      clearProfileCache(user.id); // Clear cache before refreshing
+      await fetchProfile(user.id, true); // Force fetch
     }
   };
 
@@ -147,6 +216,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     console.log('[Auth] Signing out...');
     try {
+      // Clear cache before signing out
+      if (user?.id) {
+        clearProfileCache(user.id);
+      }
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('[Auth] Sign out error:', error);
