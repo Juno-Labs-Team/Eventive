@@ -1,0 +1,87 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.login-box {
+  background: white;
+  border-radius: 12px;
+  padding: 48px 40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+}
+
+.login-box h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  color: #1a202c;
+}
+
+.login-subtitle {
+  margin: 0 0 32px 0;
+  color: #718096;
+  font-size: 16px;
+}
+
+.oauth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.oauth-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.google-button {
+  background: white;
+  color: #1a202c;
+  border: 1px solid #e2e8f0;
+}
+
+.google-button:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.discord-button {
+  background: #5865f2;
+  color: white;
+}
+
+.discord-button:hover {
+  background: #4752c4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+}
+
+.oauth-button svg {
+  flex-shrink: 0;
+}
+
+.login-footer {
+  font-size: 12px;
+  color: #a0aec0;
+  margin: 0;
+  line-height: 1.5;
+}
