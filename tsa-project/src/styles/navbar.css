@@ -1,93 +1,119 @@
+/**
+ * Navbar Styles
+ * 
+ * EASY CUSTOMIZATION:
+ * - Change navbar colors in variables.css (--navbar-bg, --navbar-text, etc.)
+ * - Adjust height with --navbar-height variable
+ * - Modify animations with --transition-base variable
+ * 
+ * Current theme: Black navbar with smooth animations
+ */
+
 .navbar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--navbar-bg);
+  border-bottom: 1px solid var(--navbar-border);
+  box-shadow: var(--shadow-md);
   z-index: 1000;
+  animation: slideDown var(--animation-duration) var(--animation-timing);
 }
 
 .navbar-container {
-  max-width: 1200px;
+  max-width: var(--max-content-width);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--spacing-lg);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 64px;
+  height: var(--navbar-height);
 }
 
 .navbar-logo {
-  font-size: 24px;
-  font-weight: 700;
-  color: #667eea;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--navbar-text);
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color var(--transition-base);
+  letter-spacing: -0.5px;
 }
 
 .navbar-logo:hover {
-  color: #5568d3;
+  color: var(--navbar-text-hover);
 }
 
 .navbar-links {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: var(--spacing-lg);
 }
 
 .navbar-link {
-  color: #4a5568;
+  color: var(--navbar-text);
   text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  transition: color var(--transition-base);
+  opacity: 0.9;
 }
 
 .navbar-link:hover {
-  color: #667eea;
+  color: var(--navbar-text-hover);
+  opacity: 1;
 }
 
 .navbar-user {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: #f7fafc;
-  border-radius: 20px;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius-full);
+  backdrop-filter: blur(10px);
+  transition: background var(--transition-base);
+}
+
+.navbar-user:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .navbar-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-full);
   object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: border-color var(--transition-base);
+}
+
+.navbar-avatar:hover {
+  border-color: var(--color-primary);
 }
 
 .navbar-username {
-  font-size: 14px;
-  font-weight: 500;
-  color: #2d3748;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--navbar-text);
 }
 
 .navbar-button {
-  padding: 8px 20px;
-  border-radius: 6px;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-md);
   border: none;
-  background: #667eea;
+  background: var(--color-primary);
   color: white;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
   text-decoration: none;
   display: inline-block;
 }
 
 .navbar-button:hover {
-  background: #5568d3;
-  transform: translateY(-1px);
-}
-
-/* Add padding to body to account for fixed navbar */
-body {
-  padding-top: 64px;
+  background: var(--color-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
