@@ -11,6 +11,7 @@
     "generate-eslint-docs": "node scripts/generate-eslint-docs.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.78.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router": "^7.9.5"
