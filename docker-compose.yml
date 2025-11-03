@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - tsa-network
+
+  # Development service (optional - use docker-compose up dev for local development)
+  dev:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./tsa-project:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    command: npm run dev -- --host
+    environment:
+      - NODE_ENV=development
+    profiles:
+      - development
+    networks:
+      - tsa-network
+
+networks:
+  tsa-network:
+    driver: bridge
