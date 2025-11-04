@@ -1,17 +1,103 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { supabase } from '../lib/supabaseClient';
+import { uploadAvatar, validateAvatarFile, deleteAvatar } from '../lib/avatarUpload';
 import { SkeletonLoader } from '../components/SkeletonLoader';
+import '../styles/account.css';
 
 export default function Account() {
   const { user, profile, refreshProfile, loading: authLoading } = useAuth();
+  const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [formData, setFormData] = useState({
     display_name: profile?.display_name || '',
     username: profile?.username || '',
     bio: profile?.bio || '',
+    avatar_url: profile?.avatar_url || '',
   });
+
+  // Handle avatar upload
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file first
+    const validation = validateAvatarFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error || 'Invalid file');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    setUploadProgress(0);
+
+    try {
+      // Upload to Supabase Storage
+      const result = await uploadAvatar({
+        file,
+        userId: user.id,
+        onProgress: setUploadProgress,
+      });
+
+      if (!result.success) {
+        toast.error(result.error || 'Failed to upload avatar');
+        return;
+      }
+
+      // Update profile immediately
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: result.url })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      await refreshProfile();
+      setFormData({ ...formData, avatar_url: result.url || '' });
+      toast.success('Avatar updated successfully!');
+    } catch (error: any) {
+      console.error('Error uploading avatar:', error);
+      toast.error(`Failed to upload avatar: ${error.message}`);
+    } finally {
+      setUploadingAvatar(false);
+      setUploadProgress(0);
+    }
+  };
+
+  // Handle avatar removal
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+
+    const confirmDelete = confirm('Are you sure you want to remove your avatar?');
+    if (!confirmDelete) return;
+
+    setUploadingAvatar(true);
+    try {
+      // Delete from storage
+      await deleteAvatar(user.id);
+
+      // Update profile
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      await refreshProfile();
+      setFormData({ ...formData, avatar_url: '' });
+      toast.success('Avatar removed successfully');
+    } catch (error: any) {
+      console.error('Error removing avatar:', error);
+      toast.error(`Failed to remove avatar: ${error.message}`);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -31,10 +117,10 @@ export default function Account() {
 
       await refreshProfile();
       setEditing(false);
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      alert(`Failed to update profile: ${error.message}`);
+      toast.error(`Failed to update profile: ${error.message}`);
     } finally {
       setSaving(false);
     }
@@ -45,9 +131,22 @@ export default function Account() {
       display_name: profile?.display_name || '',
       username: profile?.username || '',
       bio: profile?.bio || '',
+      avatar_url: profile?.avatar_url || '',
     });
     setEditing(false);
   };
+
+  // Update formData when profile changes (after onboarding)
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        display_name: profile.display_name || '',
+        username: profile.username || '',
+        bio: profile.bio || '',
+        avatar_url: profile.avatar_url || '',
+      });
+    }
+  }, [profile]);
 
   // Show skeleton loader while auth is loading
   if (authLoading) {
@@ -65,132 +164,110 @@ export default function Account() {
     <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
       <h1>Account</h1>
 
-      <div style={{ 
-        background: 'white', 
-        padding: '24px', 
-        borderRadius: '8px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        marginTop: '24px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
-          {profile?.avatar_url && (
-            <img 
-              src={profile.avatar_url} 
-              alt="Avatar" 
-              style={{ 
-                width: '80px', 
-                height: '80px', 
-                borderRadius: '50%',
-                marginRight: '16px'
-              }} 
-            />
-          )}
-          <div>
-            <h2 style={{ margin: '0 0 4px 0' }}>{profile?.display_name || 'User'}</h2>
-            <p style={{ margin: 0, color: '#666' }}>
+      <div className="account-card">
+        <div className="account-header">
+          <div className="avatar-section">
+            <div className="avatar-wrapper">
+              <img 
+                src={formData.avatar_url || '/default-avatar.png'} 
+                alt="Avatar" 
+                className="avatar-large"
+              />
+              {uploadingAvatar && (
+                <div className="avatar-overlay">
+                  <span>Uploading... {uploadProgress}%</span>
+                </div>
+              )}
+            </div>
+            <div className="avatar-actions">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                disabled={uploadingAvatar}
+                id="avatar-upload-input"
+                style={{ display: 'none' }}
+              />
+              <label htmlFor="avatar-upload-input" className="btn-small btn-primary">
+                {uploadingAvatar ? 'Uploading...' : 'Change Avatar'}
+              </label>
+              {formData.avatar_url && (
+                <button 
+                  onClick={handleRemoveAvatar}
+                  disabled={uploadingAvatar}
+                  className="btn-small btn-secondary"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div className="profile-summary">
+            <h2>{profile?.display_name || 'User'}</h2>
+            <p className="username-text">
               {profile?.username ? `@${profile.username}` : 'No username set'}
             </p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#999' }}>
+            <p className="role-text">
               Role: {profile?.role || 'user'}
             </p>
           </div>
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-            Email
-          </label>
+        <div className="form-field">
+          <label>Email</label>
           <input 
             type="text" 
             value={user?.email || ''} 
             disabled 
-            style={{ 
-              width: '100%', 
-              padding: '8px 12px', 
-              borderRadius: '4px',
-              border: '1px solid #ddd',
-              background: '#f5f5f5',
-              boxSizing: 'border-box'
-            }} 
           />
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-            Display Name
-          </label>
+        <div className="form-field">
+          <label>Display Name</label>
           <input 
             type="text" 
             value={formData.display_name} 
             onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
             disabled={!editing}
-            style={{ 
-              width: '100%', 
-              padding: '8px 12px', 
-              borderRadius: '4px',
-              border: '1px solid #ddd',
-              background: editing ? 'white' : '#f5f5f5',
-              boxSizing: 'border-box'
-            }} 
           />
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-            Username
-          </label>
-          <input 
-            type="text" 
-            value={formData.username} 
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            disabled={!editing}
-            placeholder="username"
-            style={{ 
-              width: '100%', 
-              padding: '8px 12px', 
-              borderRadius: '4px',
-              border: '1px solid #ddd',
-              background: editing ? 'white' : '#f5f5f5',
-              boxSizing: 'border-box'
-            }} 
-          />
+        <div className="form-field">
+          <label>Username</label>
+          <div className="username-input-wrapper">
+            <span className="username-prefix">@</span>
+            <input 
+              type="text" 
+              value={formData.username} 
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              disabled={!editing}
+              placeholder="username"
+            />
+          </div>
+          {!formData.username && (
+            <p style={{ fontSize: '12px', color: 'var(--color-error)', marginTop: '4px' }}>
+              You haven't set a username yet. Set one now!
+            </p>
+          )}
         </div>
 
-        <div style={{ marginBottom: '24px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-            Bio
-          </label>
+        <div className="form-field">
+          <label>Bio</label>
           <textarea 
             value={formData.bio} 
             onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
             disabled={!editing}
             placeholder="Tell us about yourself..."
             rows={4}
-            style={{ 
-              width: '100%', 
-              padding: '8px 12px', 
-              borderRadius: '4px',
-              border: '1px solid #ddd',
-              background: editing ? 'white' : '#f5f5f5',
-              fontFamily: 'inherit',
-              boxSizing: 'border-box'
-            }} 
           />
         </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="action-buttons">
           {!editing ? (
             <button 
               onClick={() => setEditing(true)}
-              style={{ 
-                padding: '10px 20px',
-                borderRadius: '6px',
-                border: 'none',
-                background: '#667eea',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
+              className="btn-action primary"
             >
               Edit Profile
             </button>
@@ -199,31 +276,14 @@ export default function Account() {
               <button 
                 onClick={handleSave}
                 disabled={saving}
-                style={{ 
-                  padding: '10px 20px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: '#48bb78',
-                  color: 'white',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  opacity: saving ? 0.6 : 1
-                }}
+                className="btn-action success"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
               <button 
                 onClick={handleCancel}
                 disabled={saving}
-                style={{ 
-                  padding: '10px 20px',
-                  borderRadius: '6px',
-                  border: '1px solid #ddd',
-                  background: 'white',
-                  color: '#333',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  fontSize: '14px'
-                }}
+                className="btn-action secondary"
               >
                 Cancel
               </button>
@@ -232,7 +292,7 @@ export default function Account() {
         </div>
       </div>
 
-      <div style={{ marginTop: '16px', fontSize: '14px', color: '#666' }}>
+      <div className="account-info">
         <p>Account created: {new Date(profile?.created_at || '').toLocaleDateString()}</p>
       </div>
     </div>

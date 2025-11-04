@@ -90,40 +90,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single() to avoid 406 error
       
       const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error('[Auth] Profile fetch error:', error);
+        setProfile(null);
+        return;
+      }
+      
+      // If profile doesn't exist, create it
+      if (!data) {
+        console.log('[Auth] Profile not found, creating...');
+        const currentUser = (await supabase.auth.getUser()).data.user;
         
-        // If profile doesn't exist (PGRST116), create it
-        if (error.code === 'PGRST116') {
-          console.log('[Auth] Profile not found, creating...');
-          const currentUser = (await supabase.auth.getUser()).data.user;
+        if (currentUser) {
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: userId,
+              display_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || currentUser.email?.split('@')[0],
+              avatar_url: currentUser.user_metadata?.avatar_url,
+            })
+            .select()
+            .maybeSingle(); // Use maybeSingle() here too
           
-          if (currentUser) {
-            const { data: newProfile, error: createError } = await supabase
-              .from('profiles')
-              .insert({
-                id: userId,
-                display_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || currentUser.email?.split('@')[0],
-                avatar_url: currentUser.user_metadata?.avatar_url,
-              })
-              .select()
-              .single();
-            
-            if (createError) {
-              console.error('[Auth] Error creating profile:', createError);
-              setProfile(null);
+          if (createError) {
+            console.error('[Auth] Error creating profile:', createError);
+            // If it's a duplicate key error, try fetching again
+            if (createError.code === '23505') {
+              console.log('[Auth] Profile already exists, fetching again...');
+              const { data: existingProfile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
+              
+              if (existingProfile) {
+                setProfile(existingProfile);
+                cacheProfile(userId, existingProfile);
+              }
             } else {
-              console.log('[Auth] Profile created successfully:', newProfile);
-              setProfile(newProfile);
-              cacheProfile(userId, newProfile); // Cache the new profile
+              setProfile(null);
             }
+          } else if (newProfile) {
+            console.log('[Auth] Profile created successfully:', newProfile);
+            setProfile(newProfile);
+            cacheProfile(userId, newProfile); // Cache the new profile
           }
-        } else {
-          setProfile(null);
         }
         return;
       }
