@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { supabase } from '../lib/supabaseClient';
+import { api } from '../lib/apiClient';
 import { uploadAvatar, validateAvatarFile, deleteAvatar } from '../lib/avatarUpload';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import '../styles/account.css';
@@ -48,14 +48,8 @@ export default function Account() {
         return;
       }
 
-      // Update profile immediately
-      const { error } = await supabase
-        .from('profiles')
-        .update({ avatar_url: result.url })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
+      // Update profile with new avatar URL
+      await api.updateProfile({ avatar_url: result.url });
       await refreshProfile();
       setFormData({ ...formData, avatar_url: result.url || '' });
       toast.success('Avatar updated successfully!');
@@ -77,17 +71,11 @@ export default function Account() {
 
     setUploadingAvatar(true);
     try {
-      // Delete from storage
-      await deleteAvatar(user.id);
+      // Delete avatar via API
+      await deleteAvatar();
 
-      // Update profile
-      const { error } = await supabase
-        .from('profiles')
-        .update({ avatar_url: null })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
+      // Update profile to remove avatar URL
+      await api.updateProfile({ avatar_url: null });
       await refreshProfile();
       setFormData({ ...formData, avatar_url: '' });
       toast.success('Avatar removed successfully');
@@ -104,16 +92,11 @@ export default function Account() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          display_name: formData.display_name,
-          username: formData.username,
-          bio: formData.bio,
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
+      await api.updateProfile({
+        display_name: formData.display_name,
+        username: formData.username,
+        bio: formData.bio,
+      });
 
       await refreshProfile();
       setEditing(false);
