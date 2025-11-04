@@ -12,8 +12,6 @@ This project (Eventive) is containerized using Docker for easy deployment and co
 
 ## Quick Start
 
-**Note**: Docker files are located at the repository root (`tsa-repository/`), not in the `tsa-project/` folder.
-
 ### Production Build
 
 ```bash
@@ -40,7 +38,7 @@ docker-compose --profile development up dev
 docker build -t tsa-project .
 
 # Run container
-docker run -p 3000:80 --env-file tsa-project/.env tsa-project
+docker run -p 3000:80 --env-file .env tsa-project
 
 # Stop container
 docker stop <container-id>
@@ -160,7 +158,7 @@ DOCKER_BUILDKIT=1 docker-compose build
 ```
 
 ### Environment variables not loading
-- Ensure `.env` file is in tsa-project directory (not root)
+- Ensure `.env` file is in the root directory
 - Restart container after .env changes: `docker-compose restart`
 - Check variable names start with `VITE_` prefix
 
@@ -179,14 +177,13 @@ DOCKER_BUILDKIT=1 docker-compose build
 
 ```
 tsa-repository/
-├── .env                   # Environment variables (ROOT)
+├── .env                   # Environment variables
 ├── Dockerfile             # Multi-stage build config
 ├── docker-compose.yml     # Orchestration config
 ├── .dockerignore         # Build context exclusions
-└── tsa-project/
-    ├── nginx.conf        # Nginx server config
-    ├── vite.config.ts    # Vite loads .env from root
-    └── ...
+├── nginx.conf            # Nginx server config
+├── vite.config.ts        # Vite loads .env from root
+└── src/                  # Application source code
 ```
 
 ## Next Steps
