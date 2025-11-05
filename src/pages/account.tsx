@@ -152,7 +152,7 @@ export default function Account() {
           <div className="avatar-section">
             <div className="avatar-wrapper">
               <img 
-                src={formData.avatar_url || '/default-avatar.png'} 
+                src={formData.avatar_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile?.display_name || 'User') + '&size=200&background=667eea&color=fff'} 
                 alt="Avatar" 
                 className="avatar-large"
               />
