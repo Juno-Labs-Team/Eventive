@@ -33,6 +33,9 @@ export default function Navbar() {
               <Link to="/settings" className="navbar-link">
                 Settings
               </Link>
+              <Link to="/dashboard" className="navbar-link">
+                Dashboard
+              </Link>
               <div className="navbar-user">
                 {profile?.avatar_url && (
                   <img 
