@@ -34,13 +34,11 @@ export default function Navbar() {
                 Settings
               </Link>
               <div className="navbar-user">
-                {profile?.avatar_url && (
-                  <img 
-                    src={profile.avatar_url} 
-                    alt="Avatar" 
-                    className="navbar-avatar"
-                  />
-                )}
+                <img 
+                  src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.display_name || user?.email?.split('@')[0] || 'User')}&size=40&background=667eea&color=fff`} 
+                  alt="Avatar" 
+                  className="navbar-avatar"
+                />
                 <span className="navbar-username">
                   {profile?.display_name || user.email?.split('@')[0]}
                 </span>
