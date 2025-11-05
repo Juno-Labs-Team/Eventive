@@ -106,6 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const currentUser = (await supabase.auth.getUser()).data.user;
         
         if (currentUser) {
+          console.log('[Auth] User metadata:', currentUser.user_metadata);
+          console.log('[Auth] Avatar URL from OAuth:', currentUser.user_metadata?.avatar_url);
+          
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert({
@@ -144,6 +147,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       console.log('[Auth] Profile fetched successfully:', data);
+      
+      // If profile exists but has no avatar, try to update it from OAuth metadata
+      if (data && !data.avatar_url) {
+        console.log('[Auth] Profile has no avatar, checking OAuth metadata...');
+        const currentUser = (await supabase.auth.getUser()).data.user;
+        const oauthAvatar = currentUser?.user_metadata?.avatar_url;
+        
+        if (oauthAvatar) {
+          console.log('[Auth] Updating profile with OAuth avatar:', oauthAvatar);
+          const { data: updatedProfile } = await supabase
+            .from('profiles')
+            .update({ avatar_url: oauthAvatar })
+            .eq('id', userId)
+            .select()
+            .maybeSingle();
+          
+          if (updatedProfile) {
+            setProfile(updatedProfile);
+            cacheProfile(userId, updatedProfile);
+            return;
+          }
+        }
+      }
+      
       setProfile(data);
       cacheProfile(userId, data); // Cache the profile
     } catch (error: any) {
