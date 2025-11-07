@@ -1,10 +1,10 @@
 /**
  * Avatar Upload Utilities
  * 
- * Handles avatar uploads to Supabase Storage with validation and error handling.
+ * Handles avatar uploads via the backend API with validation and error handling.
  */
 
-import { supabase } from './supabaseClient';
+import { api } from './apiClient';
 
 export interface UploadAvatarOptions {
   file: File;
@@ -43,11 +43,10 @@ export function validateAvatarFile(file: File): { valid: boolean; error?: string
 }
 
 /**
- * Uploads an avatar to Supabase Storage and returns the public URL
+ * Uploads an avatar via the backend API and returns the public URL
  */
 export async function uploadAvatar({ 
   file, 
-  userId, 
   onProgress 
 }: UploadAvatarOptions): Promise<UploadAvatarResult> {
   try {
@@ -57,54 +56,24 @@ export async function uploadAvatar({
       return { success: false, error: validation.error };
     }
 
-    // Generate unique filename with timestamp
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}/${Date.now()}.${fileExt}`;
-
     // Report initial progress
     onProgress?.(10);
 
-    // Delete old avatar if exists (cleanup)
-    const { data: existingFiles } = await supabase.storage
-      .from('avatars')
-      .list(userId);
-
-    if (existingFiles && existingFiles.length > 0) {
-      const filesToDelete = existingFiles.map(f => `${userId}/${f.name}`);
-      await supabase.storage
-        .from('avatars')
-        .remove(filesToDelete);
-    }
-
+    // Call backend API to handle upload
     onProgress?.(30);
-
-    // Upload the file
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
-      return { 
-        success: false, 
-        error: `Failed to upload avatar: ${uploadError.message}` 
-      };
-    }
-
+    
+    const result = await api.uploadAvatar(file) as { 
+      success: boolean; 
+      data?: { url: string }; 
+      error?: { message: string } 
+    };
+    
     onProgress?.(80);
 
-    // Get the public URL
-    const { data: urlData } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(fileName);
-
-    if (!urlData?.publicUrl) {
+    if (!result.success) {
       return { 
         success: false, 
-        error: 'Failed to get avatar URL' 
+        error: result.error?.message || 'Failed to upload avatar' 
       };
     }
 
@@ -112,7 +81,7 @@ export async function uploadAvatar({
 
     return { 
       success: true, 
-      url: urlData.publicUrl 
+      url: result.data?.url 
     };
 
   } catch (error: any) {
@@ -125,29 +94,20 @@ export async function uploadAvatar({
 }
 
 /**
- * Deletes a user's avatar from Supabase Storage
+ * Deletes a user's avatar via the backend API
  */
-export async function deleteAvatar(userId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteAvatar(): Promise<{ success: boolean; error?: string }> {
   try {
-    const { data: files, error: listError } = await supabase.storage
-      .from('avatars')
-      .list(userId);
-
-    if (listError) {
-      return { success: false, error: listError.message };
-    }
-
-    if (!files || files.length === 0) {
-      return { success: true }; // Nothing to delete
-    }
-
-    const filesToDelete = files.map(f => `${userId}/${f.name}`);
-    const { error: deleteError } = await supabase.storage
-      .from('avatars')
-      .remove(filesToDelete);
-
-    if (deleteError) {
-      return { success: false, error: deleteError.message };
+    const result = await api.deleteAvatar() as { 
+      success: boolean; 
+      error?: { message: string } 
+    };
+    
+    if (!result.success) {
+      return { 
+        success: false, 
+        error: result.error?.message || 'Failed to delete avatar' 
+      };
     }
 
     return { success: true };

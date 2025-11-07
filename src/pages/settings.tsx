@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabaseClient';
+import { api } from '../lib/apiClient';
 import { SkeletonLoader } from '../components/SkeletonLoader';
+import { useToast } from '../contexts/ToastContext';
 
 export default function Settings() {
   const { profile, refreshProfile, loading: authLoading } = useAuth();
+  const { showToast } = useToast();
   const [settings, setSettings] = useState(profile?.settings || {});
   const [saving, setSaving] = useState(false);
 
@@ -20,18 +22,12 @@ export default function Settings() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ settings })
-        .eq('id', profile.id);
-
-      if (error) throw error;
-
+      await api.updateSettings(settings);
       await refreshProfile();
-      alert('Settings saved successfully!');
+      showToast('Settings saved successfully!', 'success');
     } catch (error: any) {
       console.error('Error saving settings:', error);
-      alert(`Failed to save settings: ${error.message}`);
+      showToast(`Failed to save settings: ${error.message}`, 'error');
     } finally {
       setSaving(false);
     }
