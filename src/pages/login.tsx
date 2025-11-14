@@ -48,7 +48,12 @@ export default function Login() {
         <h1>Welcome to Eventive</h1>
         <p className="login-subtitle">Sign in to continue</p>
 
-        {/*Put username and password login here*/}
+        <input className="text-box" placeholder="Username"/>
+        <input className="text-box" placeholder="Password" />
+        <input className="text-box" placeholder="Email" />
+        <button className="login-button">Login</button>
+
+        <hr></hr>
 
         <div className="oauth-buttons">
           <button onClick={handleGoogleSignIn} className="oauth-button google-button">
