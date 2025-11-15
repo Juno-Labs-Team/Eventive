@@ -122,3 +122,13 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
 }
+
+hr {
+  border: none;
+  height: 1px;
+  width: 110%;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  justify-self: center;
+  background: rgb(200, 200, 200)
+}
