@@ -5,9 +5,8 @@ import type { AuthContextType, Profile } from '../types/auth';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// In-memory cache for profiles (faster than localStorage)
 const profileCache = new Map<string, { profile: Profile; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any | null>(null);
@@ -16,21 +15,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check if cached profile is still valid
   const getCachedProfile = (userId: string): Profile | null => {
-    // Check memory cache first (fastest)
     const memoryCache = profileCache.get(userId);
     if (memoryCache && Date.now() - memoryCache.timestamp < CACHE_DURATION) {
       console.log('[Auth] Using memory cached profile');
       return memoryCache.profile;
     }
 
-    // Check localStorage as fallback
     try {
       const cached = localStorage.getItem(`profile_${userId}`);
       if (cached) {
         const { profile, timestamp } = JSON.parse(cached);
         if (Date.now() - timestamp < CACHE_DURATION) {
           console.log('[Auth] Using localStorage cached profile');
-          // Also update memory cache
           profileCache.set(userId, { profile, timestamp });
           return profile;
         }
@@ -45,11 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Save profile to cache
   const cacheProfile = (userId: string, profile: Profile) => {
     const cacheData = { profile, timestamp: Date.now() };
-    
-    // Save to memory cache
     profileCache.set(userId, cacheData);
     
-    // Save to localStorage
     try {
       localStorage.setItem(`profile_${userId}`, JSON.stringify(cacheData));
     } catch (error) {
@@ -57,7 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Clear profile cache
   const clearProfileCache = (userId: string) => {
     profileCache.delete(userId);
     try {
@@ -71,7 +63,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = async (userId: string, force = false) => {
     console.log('[Auth] Fetching profile for user:', userId);
     
-    // Check cache first (unless force refresh)
     if (!force) {
       const cached = getCachedProfile(userId);
       if (cached) {
@@ -80,7 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     
-    // Add timeout to prevent hanging
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
     );
@@ -90,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle(); // Use maybeSingle() instead of single() to avoid 406 error
+        .maybeSingle();
       
       const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
@@ -100,7 +90,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       
-      // If profile doesn't exist, create it
       if (!data) {
         console.log('[Auth] Profile not found, creating...');
         const currentUser = (await supabase.auth.getUser()).data.user;
@@ -117,11 +106,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               avatar_url: currentUser.user_metadata?.avatar_url,
             })
             .select()
-            .maybeSingle(); // Use maybeSingle() here too
+            .maybeSingle();
           
           if (createError) {
             console.error('[Auth] Error creating profile:', createError);
-            // If it's a duplicate key error, try fetching again
             if (createError.code === '23505') {
               console.log('[Auth] Profile already exists, fetching again...');
               const { data: existingProfile } = await supabase
@@ -140,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else if (newProfile) {
             console.log('[Auth] Profile created successfully:', newProfile);
             setProfile(newProfile);
-            cacheProfile(userId, newProfile); // Cache the new profile
+            cacheProfile(userId, newProfile);
           }
         }
         return;
@@ -148,7 +136,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('[Auth] Profile fetched successfully:', data);
       
-      // If profile exists but has no avatar, try to update it from OAuth metadata
       if (data && !data.avatar_url) {
         console.log('[Auth] Profile has no avatar, checking OAuth metadata...');
         const currentUser = (await supabase.auth.getUser()).data.user;
@@ -172,26 +159,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       setProfile(data);
-      cacheProfile(userId, data); // Cache the profile
+      cacheProfile(userId, data);
     } catch (error: any) {
       console.error('[Auth] Error fetching profile (caught):', error.message);
       setProfile(null);
     }
   };
 
-  // Refresh profile (useful after updates - force fetch from DB)
   const refreshProfile = async () => {
     if (user?.id) {
-      clearProfileCache(user.id); // Clear cache before refreshing
-      await fetchProfile(user.id, true); // Force fetch
+      clearProfileCache(user.id);
+      await fetchProfile(user.id, true);
     }
   };
 
-  // Initialize auth state
   useEffect(() => {
     console.log('[Auth] Initializing auth state...');
     
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error('[Auth] Error getting session:', error);
@@ -205,7 +189,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -222,7 +205,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Sign in with Google
   const signInWithGoogle = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -238,7 +220,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Sign in with Discord
   const signInWithDiscord = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -254,11 +235,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Sign out
+  const generateUsername = (): string => {
+    const randomString = Math.random().toString(36).substring(2, 10);
+    return `user_${randomString}`;
+  };
+
+  const signUpWithEmail = async (email: string, password: string, username?: string) => {
+    try {
+      console.log('[Auth] Signing up with email:', email);
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+      
+      if (!data.user) {
+        throw new Error('Failed to create user');
+      }
+
+      console.log('[Auth] User created successfully:', data.user.id);
+
+      const finalUsername = username || generateUsername();
+      
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          username: finalUsername,
+          display_name: email.split('@')[0],
+          role: 'user',
+        });
+
+      if (profileError) {
+        console.error('[Auth] Error creating profile:', profileError);
+      } else {
+        console.log('[Auth] Profile created with username:', finalUsername);
+      }
+    } catch (error) {
+      console.error('Error signing up with email:', error);
+      throw error;
+    }
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    try {
+      console.log('[Auth] Signing in with email:', email);
+      
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+      
+      console.log('[Auth] Successfully signed in with email');
+    } catch (error) {
+      console.error('Error signing in with email:', error);
+      throw error;
+    }
+  };
+
   const signOut = async () => {
     console.log('[Auth] Signing out...');
     try {
-      // Clear cache before signing out
       if (user?.id) {
         clearProfileCache(user.id);
       }
@@ -281,6 +322,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     signInWithGoogle,
     signInWithDiscord,
+    signInWithEmail,
+    signUpWithEmail,
     signOut,
     refreshProfile,
   };
@@ -288,7 +331,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Custom hook to use auth context
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
