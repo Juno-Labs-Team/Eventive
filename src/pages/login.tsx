@@ -1,13 +1,16 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/login.css';
 
 export default function Login() {
-  const { user, signInWithGoogle, signInWithDiscord, loading } = useAuth();
+  const { user, signInWithGoogle, signInWithDiscord, signInWithEmail, loading } = useAuth();
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Redirect if already logged in
   useEffect(() => {
     if (user && !loading) {
       navigate('/');
@@ -19,7 +22,7 @@ export default function Login() {
       await signInWithGoogle();
     } catch (error) {
       console.error('Failed to sign in with Google:', error);
-      alert('Failed to sign in with Google. Please try again.');
+      setError('Failed to sign in with Google. Please try again.');
     }
   };
 
@@ -28,7 +31,28 @@ export default function Login() {
       await signInWithDiscord();
     } catch (error) {
       console.error('Failed to sign in with Discord:', error);
-      alert('Failed to sign in with Discord. Please try again.');
+      setError('Failed to sign in with Discord. Please try again.');
+    }
+  };
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      await signInWithEmail(email, password);
+    } catch (error: any) {
+      console.error('Failed to sign in:', error);
+      setError(error.message || 'Failed to sign in. Please check your credentials.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -48,10 +72,49 @@ export default function Login() {
         <h1>Welcome to Eventive</h1>
         <p className="login-subtitle">Sign in to continue</p>
 
-        <input className="text-box" placeholder="Username"/>
-        <input className="text-box" placeholder="Password" />
-        <input className="text-box" placeholder="Email" />
-        <button className="login-button">Login</button>
+        {error && (
+          <div style={{
+            padding: '12px',
+            marginBottom: '16px',
+            borderRadius: '6px',
+            backgroundColor: '#fee',
+            color: '#c33',
+            fontSize: '14px',
+            border: '1px solid #fcc'
+          }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleEmailSignIn}>
+          <input 
+            className="text-box" 
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isLoading}
+          />
+          <input 
+            className="text-box" 
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isLoading}
+          />
+          <button 
+            className="login-button" 
+            type="submit"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+
+        <div style={{ textAlign: 'center', margin: '16px 0', color: '#666' }}>
+          Don't have an account? <Link to="/signup" style={{ color: '#667eea', textDecoration: 'none', fontWeight: '500' }}>Sign Up</Link>
+        </div>
 
         <hr></hr>
 
