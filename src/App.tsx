@@ -7,6 +7,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import Navbar from './components/navbar';
 import Home from './pages/home';
 import Login from './pages/login';
+import Signup from './pages/signup';
 import Account from './pages/account';
 import Settings from './pages/settings';
 import Dashboard from './pages/dashboard';
@@ -21,6 +22,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
             <Route
               path="/dashboard"
               element={
