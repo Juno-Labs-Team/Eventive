@@ -7,7 +7,7 @@
 
 import { supabase } from './supabaseClient';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 /**
  * Get authentication headers with JWT token
