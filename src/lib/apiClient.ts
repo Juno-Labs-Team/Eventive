@@ -114,7 +114,7 @@ export const api = {
     const { data: { session } } = await supabase.auth.getSession();
     
     const formData = new FormData();
-    formData.append('avatar', file);
+    formData.append('file', file);
     
     const response = await fetch(`${API_URL}/api/uploads/avatar`, {
       method: 'POST',
