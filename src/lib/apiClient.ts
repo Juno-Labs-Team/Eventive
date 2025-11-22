@@ -95,12 +95,12 @@ export const api = {
   /**
    * Update user settings
    */
-  async updateSettings(settings: Record<string, any>) {
+async updateSettings(settings: Record<string, any>) {
     const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/settings`, {
       method: 'PUT',
       headers,
-      body: JSON.stringify(settings),
+      body: JSON.stringify({ settings }), 
     });
     return handleResponse(response);
   },
